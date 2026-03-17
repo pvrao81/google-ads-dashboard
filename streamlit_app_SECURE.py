@@ -16,13 +16,34 @@ st.set_page_config(
 )
 
 # ============================================================================
-# LOAD CREDENTIALS FROM ENVIRONMENT/SECRETS
+# LOAD SECRETS SECURELY
 # ============================================================================
 
-DEVELOPER_TOKEN = st.secrets.get("DEVELOPER_TOKEN", os.getenv("DEVELOPER_TOKEN"))
-LOGIN_CUSTOMER_ID = st.secrets.get("LOGIN_CUSTOMER_ID", os.getenv("LOGIN_CUSTOMER_ID"))
-OPERATING_CUSTOMER_ID = st.secrets.get("OPERATING_CUSTOMER_ID", os.getenv("OPERATING_CUSTOMER_ID"))
-SERVICE_ACCOUNT_JSON_STR = st.secrets.get("SERVICE_ACCOUNT_JSON", os.getenv("SERVICE_ACCOUNT_JSON"))
+def load_credentials():
+    """Load credentials from Streamlit secrets or environment variables"""
+    
+    # Try Streamlit secrets first (production - Streamlit Cloud, Codespaces)
+    try:
+        DEVELOPER_TOKEN = st.secrets.get("DEVELOPER_TOKEN")
+        LOGIN_CUSTOMER_ID = st.secrets.get("LOGIN_CUSTOMER_ID")
+        OPERATING_CUSTOMER_ID = st.secrets.get("OPERATING_CUSTOMER_ID")
+        SERVICE_ACCOUNT_JSON_STR = st.secrets.get("SERVICE_ACCOUNT_JSON")
+        
+        if all([DEVELOPER_TOKEN, LOGIN_CUSTOMER_ID, OPERATING_CUSTOMER_ID, SERVICE_ACCOUNT_JSON_STR]):
+            return DEVELOPER_TOKEN, LOGIN_CUSTOMER_ID, OPERATING_CUSTOMER_ID, SERVICE_ACCOUNT_JSON_STR
+    except:
+        pass
+    
+    # Fall back to environment variables (local development with .env)
+    DEVELOPER_TOKEN = os.getenv("DEVELOPER_TOKEN")
+    LOGIN_CUSTOMER_ID = os.getenv("LOGIN_CUSTOMER_ID")
+    OPERATING_CUSTOMER_ID = os.getenv("OPERATING_CUSTOMER_ID")
+    SERVICE_ACCOUNT_JSON_STR = os.getenv("SERVICE_ACCOUNT_JSON")
+    
+    return DEVELOPER_TOKEN, LOGIN_CUSTOMER_ID, OPERATING_CUSTOMER_ID, SERVICE_ACCOUNT_JSON_STR
+
+# Load credentials
+DEVELOPER_TOKEN, LOGIN_CUSTOMER_ID, OPERATING_CUSTOMER_ID, SERVICE_ACCOUNT_JSON_STR = load_credentials()
 
 # ============================================================================
 # INITIALIZE GOOGLE ADS CLIENT
@@ -49,7 +70,17 @@ def init_client():
         except Exception as e:
             status = f"❌ Error: {str(e)[:100]}"
     else:
-        status = "❌ Missing credentials in secrets"
+        missing = []
+        if not DEVELOPER_TOKEN:
+            missing.append("DEVELOPER_TOKEN")
+        if not LOGIN_CUSTOMER_ID:
+            missing.append("LOGIN_CUSTOMER_ID")
+        if not OPERATING_CUSTOMER_ID:
+            missing.append("OPERATING_CUSTOMER_ID")
+        if not SERVICE_ACCOUNT_JSON_STR:
+            missing.append("SERVICE_ACCOUNT_JSON")
+        
+        status = f"❌ Missing credentials: {', '.join(missing)}"
     
     return client, status
 
@@ -78,15 +109,18 @@ with st.sidebar:
     """)
     
     st.markdown("### ⚙️ Connection Status")
-    st.info(connection_status)
+    if "Connected" in connection_status:
+        st.success(connection_status)
+    else:
+        st.error(connection_status)
     
-    st.markdown("### 🔑 Requirements")
+    st.markdown("### 🔑 How Secrets Work")
     st.markdown("""
-    Make sure these secrets are set:
-    - `DEVELOPER_TOKEN`
-    - `LOGIN_CUSTOMER_ID`
-    - `OPERATING_CUSTOMER_ID`
-    - `SERVICE_ACCOUNT_JSON`
+    Credentials are loaded from:
+    1. **GitHub Codespaces Secrets** (recommended)
+    2. **Environment variables** (.env file)
+    
+    **Never hardcode secrets in code!**
     """)
 
 # ============================================================================
@@ -127,10 +161,19 @@ with tab1:
         st.markdown("""
         ❌ Connection failed. Please check:
         
-        1. All 4 secrets are added correctly
-        2. Service account JSON is valid
-        3. Credentials are not expired
-        4. Check Streamlit Cloud Secrets settings
+        1. **GitHub Codespaces Secrets**: Go to https://github.com/settings/codespaces
+           - Add all 4 secrets: DEVELOPER_TOKEN, LOGIN_CUSTOMER_ID, OPERATING_CUSTOMER_ID, SERVICE_ACCOUNT_JSON
+           - Select your repository
+        
+        2. **Or use .env file** (local testing):
+           - Create `.env` in repo root
+           - Add your credentials
+           - Make sure `.env` is in `.gitignore`
+        
+        3. **Verify credentials**:
+           - Tokens are not expired
+           - Service account JSON is valid
+           - All 4 values are set
         """)
 
 # ============================================================================
@@ -142,7 +185,7 @@ with tab2:
     
     if st.button("🔄 Fetch Campaign Data", use_container_width=True):
         if not client:
-            st.error("❌ Client not initialized. Check your credentials.")
+            st.error("❌ Client not initialized. Check your credentials in GitHub Codespaces Secrets or .env file.")
         else:
             try:
                 with st.spinner("Fetching campaign data..."):
@@ -329,4 +372,5 @@ st.markdown("""
 - Built with Streamlit
 - Powered by Google Ads API
 - Data refreshes on demand
+- Secrets managed securely
 """)
