@@ -167,14 +167,3 @@ with tab3:
 
 st.markdown("---")
 st.markdown("**Google Ads Dashboard** | Powered by Streamlit & Google Ads API")
-```
-
----
-
-## 📋 FILE 2: requirements.txt
-
-**File name:** `requirements.txt`
-```
-streamlit==1.40.0
-google-ads==28.0.0
-pandas==2.1.4
