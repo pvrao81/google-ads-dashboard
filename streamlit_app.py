@@ -502,7 +502,7 @@ with tab3:
                 for idx, rec in enumerate(recommendations, 1):
                     priority_color = {"HIGH": "🔴", "MEDIUM": "🟡", "LOW": "🟢"}
                     
-                    with st.expander(f"{priority_color[rec['priority']]} #{idx}: {rec['title']} ({rec['priority']} Priority})", expanded=(idx==1)):
+                    with st.expander(f"{priority_color[rec['priority']]} #{idx}: {rec['title']} ({rec['priority']} Priority)", expanded=(idx==1)):
                         col1, col2 = st.columns(2)
                         
                         with col1:
